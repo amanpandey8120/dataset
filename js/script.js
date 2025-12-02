@@ -37,6 +37,19 @@ const responses = {
         "I'm here to chat and help! You can ask me about myself, have a conversation, or just say hello!",
         "Feel free to ask me anything or just chat! I can discuss various topics with you."
     ],
+    
+    default: [
+        "That's interesting! Tell me more.",
+        "I see! Can you elaborate on that?",
+        "Interesting point! What else would you like to know?",
+        "I appreciate you sharing that! Anything else on your mind?",
+        "That's a good question! While I'm a simple chatbot, I'm here to chat with you.",
+        "I'm still learning, but I'd love to continue our conversation!",
+        "Thanks for chatting with me! What else would you like to talk about?"
+    ]
+};
+
+// ⭐ CUSTOM INTENTS (Your Lulu–Kutu Q&A)
 const intents = {
     "lulukuktu": {
         patterns: [
@@ -50,17 +63,6 @@ const intents = {
             "Absolutely! Lulu loves Kutu!"
         ]
     }
-};
-
-    default: [
-        "That's interesting! Tell me more.",
-        "I see! Can you elaborate on that?",
-        "Interesting point! What else would you like to know?",
-        "I appreciate you sharing that! Anything else on your mind?",
-        "That's a good question! While I'm a simple chatbot, I'm here to chat with you.",
-        "I'm still learning, but I'd love to continue our conversation!",
-        "Thanks for chatting with me! What else would you like to talk about?"
-    ]
 };
 
 function addMessage(text, isUser) {
@@ -101,6 +103,16 @@ function removeTypingIndicator() {
 function getBotResponse(message) {
     const lowerMessage = message.toLowerCase().trim();
 
+    // ⭐ Check custom intents first
+    for (const intentKey in intents) {
+        const intent = intents[intentKey];
+        for (const pattern of intent.patterns) {
+            if (lowerMessage.includes(pattern)) {
+                return intent.responses[Math.floor(Math.random() * intent.responses.length)];
+            }
+        }
+    }
+
     // Greetings
     if (lowerMessage.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)/)) {
         return responses.greetings[Math.floor(Math.random() * responses.greetings.length)];
@@ -132,7 +144,7 @@ function getBotResponse(message) {
     }
 
     // Weather
-    if (lowerMessage.match(/weather/)) {
+    if (lowerMessage.includes("weather")) {
         return "I don't have access to real-time weather data, but I hope it's nice where you are!";
     }
 
@@ -157,14 +169,11 @@ function sendMessage() {
     
     if (!message) return;
 
-    // Add user message
     addMessage(message, true);
     userInput.value = '';
 
-    // Show typing indicator
     showTypingIndicator();
 
-    // Simulate bot thinking time
     setTimeout(() => {
         removeTypingIndicator();
         const botResponse = getBotResponse(message);
@@ -172,7 +181,6 @@ function sendMessage() {
     }, 800 + Math.random() * 400);
 }
 
-// Event listeners
 sendBtn.addEventListener('click', sendMessage);
 
 userInput.addEventListener('keypress', (e) => {
@@ -181,5 +189,4 @@ userInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Focus input on load
 userInput.focus();
