@@ -2,7 +2,7 @@ const chatMessages = document.getElementById('chatMessages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-// Bot responses database
+// Bot built-in responses
 const responses = {
     greetings: [
         "Hello! How can I assist you today?",
@@ -37,7 +37,6 @@ const responses = {
         "I'm here to chat and help! You can ask me about myself, have a conversation, or just say hello!",
         "Feel free to ask me anything or just chat! I can discuss various topics with you."
     ],
-    
     default: [
         "That's interesting! Tell me more.",
         "I see! Can you elaborate on that?",
@@ -49,9 +48,9 @@ const responses = {
     ]
 };
 
-// ⭐ CUSTOM INTENTS (Your Lulu–Kutu Q&A)
-const intents = {
-    "lulukuktu": {
+// Custom intents for questions and answers
+const intents = [
+    {
         patterns: [
             "does lulu love kutu",
             "does lulu love me",
@@ -63,7 +62,12 @@ const intents = {
             "Absolutely! Lulu loves Kutu!"
         ]
     }
-};
+];
+
+// Helper function to clean input
+function cleanText(text) {
+    return text.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+}
 
 function addMessage(text, isUser) {
     const messageDiv = document.createElement('div');
@@ -100,73 +104,64 @@ function removeTypingIndicator() {
     }
 }
 
+// Main function to get bot response
 function getBotResponse(message) {
-    const lowerMessage = message.toLowerCase().trim();
+    const cleanMessage = cleanText(message);
 
-    // ⭐ Check custom intents first
-    for (const intentKey in intents) {
-        const intent = intents[intentKey];
-        for (const pattern of intent.patterns) {
-            if (lowerMessage.includes(pattern)) {
+    // 1️⃣ Check custom intents first
+    for (let intent of intents) {
+        for (let pattern of intent.patterns) {
+            if (cleanMessage === cleanText(pattern)) {
                 return intent.responses[Math.floor(Math.random() * intent.responses.length)];
             }
         }
     }
 
-    // Greetings
-    if (lowerMessage.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)/)) {
+    // 2️⃣ Built-in responses
+    if (cleanMessage.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)/)) {
         return responses.greetings[Math.floor(Math.random() * responses.greetings.length)];
     }
 
-    // Farewell
-    if (lowerMessage.match(/^(bye|goodbye|see you|farewell|see ya)/)) {
+    if (cleanMessage.match(/^(bye|goodbye|see you|farewell|see ya)/)) {
         return responses.farewell[Math.floor(Math.random() * responses.farewell.length)];
     }
 
-    // Thanks
-    if (lowerMessage.match(/(thank|thanks|thx|appreciate)/)) {
+    if (cleanMessage.match(/(thank|thanks|thx|appreciate)/)) {
         return responses.thanks[Math.floor(Math.random() * responses.thanks.length)];
     }
 
-    // How are you
-    if (lowerMessage.match(/(how are you|how r u|how're you|hows it going|whats up)/)) {
+    if (cleanMessage.match(/(how are you|how r u|how're you|hows it going|whats up)/)) {
         return responses.howareyou[Math.floor(Math.random() * responses.howareyou.length)];
     }
 
-    // Name
-    if (lowerMessage.match(/(your name|who are you|what are you)/)) {
+    if (cleanMessage.match(/(your name|who are you|what are you)/)) {
         return responses.name[Math.floor(Math.random() * responses.name.length)];
     }
 
-    // Help
-    if (lowerMessage.match(/(help|what can you do|your purpose|capabilities)/)) {
+    if (cleanMessage.match(/(help|what can you do|your purpose|capabilities)/)) {
         return responses.help[Math.floor(Math.random() * responses.help.length)];
     }
 
-    // Weather
-    if (lowerMessage.includes("weather")) {
+    if (cleanMessage.includes("weather")) {
         return "I don't have access to real-time weather data, but I hope it's nice where you are!";
     }
 
-    // Time
-    if (lowerMessage.match(/(what time|current time|time is it)/)) {
+    if (cleanMessage.match(/(what time|current time|time is it)/)) {
         const now = new Date();
         return `The current time is ${now.toLocaleTimeString()}.`;
     }
 
-    // Date
-    if (lowerMessage.match(/(what date|today's date|current date)/)) {
+    if (cleanMessage.match(/(what date|today's date|current date)/)) {
         const now = new Date();
         return `Today's date is ${now.toLocaleDateString()}.`;
     }
 
-    // Default response
+    // 3️⃣ Default fallback
     return responses.default[Math.floor(Math.random() * responses.default.length)];
 }
 
 function sendMessage() {
     const message = userInput.value.trim();
-    
     if (!message) return;
 
     addMessage(message, true);
@@ -182,11 +177,8 @@ function sendMessage() {
 }
 
 sendBtn.addEventListener('click', sendMessage);
-
 userInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
+    if (e.key === 'Enter') sendMessage();
 });
 
 userInput.focus();
