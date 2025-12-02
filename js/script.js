@@ -2,7 +2,7 @@ const chatMessages = document.getElementById('chatMessages');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 
-// Bot built-in responses
+// Built-in bot responses
 const responses = {
     greetings: [
         "Hello! How can I assist you today?",
@@ -48,7 +48,7 @@ const responses = {
     ]
 };
 
-// Custom intents for questions and answers
+// Custom intents
 const intents = [
     {
         patterns: [
@@ -64,51 +64,52 @@ const intents = [
     }
 ];
 
-// Helper function to clean input
+// Helper: lowercase + remove punctuation
 function cleanText(text) {
     return text.toLowerCase().replace(/[^\w\s]/gi, '').trim();
 }
 
+// Add message to chat
 function addMessage(text, isUser) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-    
+
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     contentDiv.textContent = text;
-    
+
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Show typing indicator
 function showTypingIndicator() {
     const typingDiv = document.createElement('div');
     typingDiv.className = 'message bot-message';
     typingDiv.id = 'typingIndicator';
-    
+
     const indicator = document.createElement('div');
     indicator.className = 'typing-indicator';
     indicator.style.display = 'block';
     indicator.innerHTML = '<span></span><span></span><span></span>';
-    
+
     typingDiv.appendChild(indicator);
     chatMessages.appendChild(typingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Remove typing indicator
 function removeTypingIndicator() {
     const indicator = document.getElementById('typingIndicator');
-    if (indicator) {
-        indicator.remove();
-    }
+    if (indicator) indicator.remove();
 }
 
-// Main function to get bot response
+// Main bot response
 function getBotResponse(message) {
     const cleanMessage = cleanText(message);
 
-    // 1️⃣ Check custom intents first
+    // 1️⃣ Check custom intents
     for (let intent of intents) {
         for (let pattern of intent.patterns) {
             if (cleanMessage === cleanText(pattern)) {
@@ -117,7 +118,7 @@ function getBotResponse(message) {
         }
     }
 
-    // 2️⃣ Built-in responses
+    // 2️⃣ Check built-in responses
     if (cleanMessage.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)/)) {
         return responses.greetings[Math.floor(Math.random() * responses.greetings.length)];
     }
@@ -160,6 +161,7 @@ function getBotResponse(message) {
     return responses.default[Math.floor(Math.random() * responses.default.length)];
 }
 
+// Send message
 function sendMessage() {
     const message = userInput.value.trim();
     if (!message) return;
@@ -176,6 +178,7 @@ function sendMessage() {
     }, 800 + Math.random() * 400);
 }
 
+// Event listeners
 sendBtn.addEventListener('click', sendMessage);
 userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
