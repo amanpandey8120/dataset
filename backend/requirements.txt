@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-snowflake-connector-python
-pandas
-langchain
-openai
-faiss-cpu
-python-dotenv
