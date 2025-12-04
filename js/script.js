@@ -1,15 +1,3 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname)));
-
 // Bot responses database
 const responses = {
     greetings: [
@@ -61,12 +49,18 @@ const responses = {
     ]
 };
 
-// Get random response
+// DOM Elements
+const chatMessages = document.getElementById('chatMessages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+// Get random response from array
 function getRandomResponse(responseArray) {
     return responseArray[Math.floor(Math.random() * responseArray.length)];
 }
 
-function getBotResponse(message) {
+// Local fallback function
+function getLocalBotResponse(message) {
     const lowerMessage = message.toLowerCase().trim();
 
     // Greetings
@@ -99,23 +93,6 @@ function getBotResponse(message) {
         return getRandomResponse(responses.help);
     }
 
-    // Weather
-    if (lowerMessage.match(/weather/)) {
-        return "I don't have access to real-time weather data, but I hope it's nice where you are!";
-    }
-
-    // Time
-    if (lowerMessage.match(/(what time|current time|time is it)/)) {
-        const now = new Date();
-        return `The current time is ${now.toLocaleTimeString()}.`;
-    }
-
-    // Date
-    if (lowerMessage.match(/(what date|today's date|current date)/)) {
-        const now = new Date();
-        return `Today's date is ${now.toLocaleDateString()}.`;
-    }
-
     // LuluKuktu
     if (lowerMessage.match(/lulu.*kutu|kutu.*lulu/)) {
         return getRandomResponse(responses.lulukuktu);
@@ -125,32 +102,112 @@ function getBotResponse(message) {
     return getRandomResponse(responses.default);
 }
 
-// API endpoint for chatbot
-app.post('/api/chat', (req, res) => {
+// Add message to chat
+function addMessage(text, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = text;
+    
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Show typing indicator
+function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message bot-message';
+    typingDiv.id = 'typingIndicator';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'typing-indicator';
+    contentDiv.innerHTML = '<span></span><span></span><span></span>';
+    
+    typingDiv.appendChild(contentDiv);
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Remove typing indicator
+function removeTypingIndicator() {
+    const typingDiv = document.getElementById('typingIndicator');
+    if (typingDiv) {
+        typingDiv.remove();
+    }
+}
+
+// Send message to server
+async function sendMessageToServer(message) {
     try {
-        const { message } = req.body;
-        
-        if (!message || typeof message !== 'string') {
-            return res.status(400).json({ error: 'Message is required and must be a string' });
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Simulate thinking delay
-        setTimeout(() => {
-            const response = getBotResponse(message);
-            res.json({ response });
-        }, 500 + Math.random() * 500); // Random delay between 500-1000ms
+        const data = await response.json();
+        return data.response;
     } catch (error) {
-        console.error('Chat error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Server error, using local response:', error);
+        // Use local fallback
+        return getLocalBotResponse(message);
+    }
+}
+
+// Main send message function
+async function sendMessage() {
+    const message = userInput.value.trim();
+    
+    if (!message) return;
+
+    // Add user message
+    addMessage(message, true);
+    userInput.value = '';
+    userInput.focus();
+
+    // Show typing indicator
+    showTypingIndicator();
+
+    try {
+        // Try to get response from server
+        const botResponse = await sendMessageToServer(message);
+        
+        // Remove typing indicator and add bot response
+        removeTypingIndicator();
+        addMessage(botResponse, false);
+    } catch (error) {
+        console.error('Error:', error);
+        removeTypingIndicator();
+        addMessage("Sorry, I'm having trouble responding right now. Please try again.", false);
+    }
+}
+
+// Event listeners
+sendBtn.addEventListener('click', sendMessage);
+
+userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendMessage();
     }
 });
 
-// Serve index.html for all routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// Focus input on load
+userInput.focus();
 
-app.listen(PORT, () => {
-    console.log(`Chatbot server running on port ${PORT}`);
-    console.log(`Open http://localhost:${PORT} in your browser`);
-});
+// Add welcome message
+window.onload = function() {
+    setTimeout(() => {
+        addMessage("Hello! I'm ChatBot. Type a message to start chatting!", false);
+    }, 500);
+};
