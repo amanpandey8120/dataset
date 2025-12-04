@@ -1,6 +1,14 @@
-// Configuration
-const OLLAMA_URL = 'http://localhost:11434';
-const OLLAMA_MODEL = 'llama2';
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname)));
 
 // Bot responses database
 const responses = {
@@ -53,61 +61,9 @@ const responses = {
     ]
 };
 
-// Conversation history for Ollama
-let conversationHistory = [];
-
-// Check if Ollama is available
-let ollamaAvailable = true;
-
-// Get random response from array
+// Get random response
 function getRandomResponse(responseArray) {
     return responseArray[Math.floor(Math.random() * responseArray.length)];
-}
-
-// Call Ollama API
-async function callOllama(userMessage) {
-    try {
-        // Add user message to history
-        conversationHistory.push({
-            role: 'user',
-            content: userMessage
-        });
-
-        const response = await fetch(`${OLLAMA_URL}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: OLLAMA_MODEL,
-                messages: conversationHistory,
-                stream: false
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Add assistant response to history
-        if (data.message && data.message.content) {
-            conversationHistory.push({
-                role: 'assistant',
-                content: data.message.content
-            });
-            
-            ollamaAvailable = true;
-            return data.message.content;
-        } else {
-            throw new Error('Invalid response format');
-        }
-    } catch (error) {
-        console.error('Ollama error:', error);
-        ollamaAvailable = false;
-        return null;
-    }
 }
 
 function getBotResponse(message) {
@@ -115,32 +71,32 @@ function getBotResponse(message) {
 
     // Greetings
     if (lowerMessage.match(/^(hi|hello|hey|greetings|good morning|good afternoon|good evening)/)) {
-        return responses.greetings[Math.floor(Math.random() * responses.greetings.length)];
+        return getRandomResponse(responses.greetings);
     }
 
     // Farewell
     if (lowerMessage.match(/^(bye|goodbye|see you|farewell|see ya)/)) {
-        return responses.farewell[Math.floor(Math.random() * responses.farewell.length)];
+        return getRandomResponse(responses.farewell);
     }
 
     // Thanks
     if (lowerMessage.match(/(thank|thanks|thx|appreciate)/)) {
-        return responses.thanks[Math.floor(Math.random() * responses.thanks.length)];
+        return getRandomResponse(responses.thanks);
     }
 
     // How are you
     if (lowerMessage.match(/(how are you|how r u|how're you|hows it going|whats up)/)) {
-        return responses.howareyou[Math.floor(Math.random() * responses.howareyou.length)];
+        return getRandomResponse(responses.howareyou);
     }
 
     // Name
     if (lowerMessage.match(/(your name|who are you|what are you)/)) {
-        return responses.name[Math.floor(Math.random() * responses.name.length)];
+        return getRandomResponse(responses.name);
     }
 
     // Help
     if (lowerMessage.match(/(help|what can you do|your purpose|capabilities)/)) {
-        return responses.help[Math.floor(Math.random() * responses.help.length)];
+        return getRandomResponse(responses.help);
     }
 
     // Weather
@@ -160,38 +116,41 @@ function getBotResponse(message) {
         return `Today's date is ${now.toLocaleDateString()}.`;
     }
 
+    // LuluKuktu
+    if (lowerMessage.match(/lulu.*kutu|kutu.*lulu/)) {
+        return getRandomResponse(responses.lulukuktu);
+    }
+
     // Default response
-    return responses.default[Math.floor(Math.random() * responses.default.length)];
+    return getRandomResponse(responses.default);
 }
 
-function sendMessage() {
-    const message = userInput.value.trim();
-    
-    if (!message) return;
+// API endpoint for chatbot
+app.post('/api/chat', (req, res) => {
+    try {
+        const { message } = req.body;
+        
+        if (!message || typeof message !== 'string') {
+            return res.status(400).json({ error: 'Message is required and must be a string' });
+        }
 
-    // Add user message
-    addMessage(message, true);
-    userInput.value = '';
-
-    // Show typing indicator
-    showTypingIndicator();
-
-    // Simulate bot thinking time
-    setTimeout(() => {
-        removeTypingIndicator();
-        const botResponse = getBotResponse(message);
-        addMessage(botResponse, false);
-    }, 800 + Math.random() * 400);
-}
-
-// Event listeners
-sendBtn.addEventListener('click', sendMessage);
-
-userInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        sendMessage();
+        // Simulate thinking delay
+        setTimeout(() => {
+            const response = getBotResponse(message);
+            res.json({ response });
+        }, 500 + Math.random() * 500); // Random delay between 500-1000ms
+    } catch (error) {
+        console.error('Chat error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// Focus input on load
-userInput.focus();
+// Serve index.html for all routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`Chatbot server running on port ${PORT}`);
+    console.log(`Open http://localhost:${PORT} in your browser`);
+});
